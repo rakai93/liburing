@@ -27,7 +27,7 @@ fn test_io_uring_linked_ops() {
             panic!("free sqe missing");
         }
         io_uring_prep_nop(sqe);
-        io_uring_sqe_set_flags(sqe, IOSQE_IO_LINK);
+        io_uring_sqe_set_flags(sqe, io_uring_sqe_flags_bit_IOSQE_IO_LINK_BIT);
 
         let sqe = io_uring_get_sqe(&mut ring);
         if sqe == std::ptr::null_mut() {

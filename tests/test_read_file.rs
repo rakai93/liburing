@@ -3,7 +3,6 @@ use std::io::Error;
 use std::mem;
 use std::os::unix::io::AsRawFd;
 
-use libc::off_t;
 use liburing::*;
 
 const QUEUE_DEPTH: u32 = 4;
@@ -22,8 +21,7 @@ fn test_io_uring_read_file() {
 
     let file = File::open("/proc/self/exe").unwrap();
 
-    let mut iovecs: Vec<libc::iovec> =
-        vec![unsafe { mem::zeroed() }; QUEUE_DEPTH as usize];
+    let mut iovecs: Vec<iovec> = vec![unsafe { mem::zeroed() }; QUEUE_DEPTH as usize];
     for iov in iovecs.iter_mut() {
         let buf = unsafe {
             let mut s = mem::MaybeUninit::<*mut libc::c_void>::uninit();
@@ -36,22 +34,14 @@ fn test_io_uring_read_file() {
         iov.iov_len = READ_SIZE;
     }
 
-    let mut offset: usize = 0;
+    let mut offset: u64 = 0;
     for i in 0.. {
         let sqe = unsafe { io_uring_get_sqe(&mut ring) };
         if sqe == std::ptr::null_mut() {
             break;
         }
-        unsafe {
-            io_uring_prep_readv(
-                sqe,
-                file.as_raw_fd(),
-                &mut iovecs[i],
-                1,
-                offset as off_t,
-            )
-        };
-        offset += READ_SIZE;
+        unsafe { io_uring_prep_readv(sqe, file.as_raw_fd(), &mut iovecs[i], 1, offset) };
+        offset += READ_SIZE as u64;
     }
     let ret = unsafe { io_uring_submit(&mut ring) };
     if ret < 0 {
